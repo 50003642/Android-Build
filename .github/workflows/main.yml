@@ -68,9 +68,18 @@ jobs:
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
+      - name: Get current commit hash
+        id: commit_hash
+        run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
+      - name: Update version code and name
+        run: |
+          VERSION_CODE=$(( $(grep 'versionCode' app/build.gradle | sed 's/[^0-9]*//g') + 1 ))
+          VERSION_NAME=$(date '+%Y.%m.%d')-$(( $(grep 'versionName' app/build.gradle | cut -d "'" -f 2 | cut -d '.' -f 4) + 1 ))
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" app/build.gradle
+          sed -i "s/versionName '[^']*'/versionName '$VERSION_NAME'/" app/build.gradle
 
       - name: Upload APK
         uses: actions/upload-artifact@v2
         with:
-          name: expense-manager.apk
+          name: expense-manager-$VERSION_NAME-$VERSION_CODE-$(${{ steps.commit_hash.outputs.hash }}).apk
           path: app/build/outputs/apk/debug/app-debug.apk
